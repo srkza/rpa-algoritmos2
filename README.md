@@ -4,13 +4,13 @@ Inicialmente, a proposta incluía login com logs, histórico de transcrições e
 
 A versão final conta com:
 
-Landing page única;
+- Landing page única;
 
-Suporte a múltiplos idiomas;
+- Suporte a múltiplos idiomas;
 
-Upload de arquivos via drag and drop;
+- Upload de arquivos via drag and drop;
 
-Transcrição automatizada de áudios.
+- Transcrição automatizada de áudios.
 
 O foco está na lógica do algoritmo e na aplicação prática da automação, respeitando os limites propostos pelo curso.
 
