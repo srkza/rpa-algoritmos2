@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcrição de Áudio Offline</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #4a6fa5;
+            text-align: center;
+        }
+        .container {
+            background-color: #f5f7fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: white;
+        }
+        .button {
+            background-color: #4a6fa5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            min-height: 100px;
+        }
+        .progress {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        select {
+            padding: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Transcrição de Áudio Offline</h1>
+        <p style="text-align: center;">Usando reconhecimento de fala local (PocketSphinx)</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Arraste e solte seu arquivo de áudio aqui ou clique para selecionar</p>
+            <input type="file" id="audioFile" accept=".mp3,.wav,.ogg,.flac" style="display: none;">
+            <button class="button" id="selectButton">Selecionar Arquivo</button>
+            <p id="fileInfo">Nenhum arquivo selecionado</p>
+        </div>
+        
+        <div>
+            <label for="languageSelect">Idioma do áudio:</label>
+            <select id="languageSelect">
+              <!--   <option value="pt-BR" selected>Português (Brasil)</option> -->
+                <option value="en-US">Inglês (EUA)</option>
+               <!--  <option value="es-ES">Espanhol</option> -->
+               <!--  <option value="fr-FR">Francês</option> -->
+            </select>
+        </div>
+        
+        <button class="button" id="transcribeButton" disabled>Transcrever</button>
+        
+        <div class="progress" id="progressArea">
+            <p>Processando áudio, por favor aguarde...</p>
+            <p><small>O processamento offline pode levar mais tempo, especialmente para arquivos grandes</small></p>
+        </div>
+        
+        <div class="result" id="resultArea" style="display: none;">
+            <h3>Texto Transcrito:</h3>
+            <div id="transcriptionText"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('audioFile');
+            const selectButton = document.getElementById('selectButton');
+            const fileInfo = document.getElementById('fileInfo');
+            const transcribeButton = document.getElementById('transcribeButton');
+            const progressArea = document.getElementById('progressArea');
+            const resultArea = document.getElementById('resultArea');
+            const transcriptionText = document.getElementById('transcriptionText');
+            const languageSelect = document.getElementById('languageSelect');
+            
+            let selectedFile = null;
+            
+            // Configurar eventos de drag and drop
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#4a6fa5';
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.style.borderColor = '#ccc';
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ccc';
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            selectButton.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length > 0) {
+                    handleFile(fileInput.files[0]);
+                }
+            });
+            
+            transcribeButton.addEventListener('click', startTranscription);
+            
+            function handleFile(file) {
+                // Verificar tipo de arquivo
+                const validTypes = ['.mp3', '.wav', '.ogg', '.flac'];
+                const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                
+                if (!validTypes.includes(fileExt)) {
+                    alert('Formato de arquivo não suportado. Por favor, selecione um arquivo MP3, WAV, OGG ou FLAC.');
+                    return;
+                }
+                
+                // Verificar tamanho do arquivo (10MB máximo)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('O arquivo é muito grande. O tamanho máximo permitido é 10MB.');
+                    return;
+                }
+                
+                selectedFile = file;
+                fileInfo.textContent = `Arquivo selecionado: ${file.name} (${formatFileSize(file.size)})`;
+                transcribeButton.disabled = false;
+            }
+            
+            function startTranscription() {
+                if (!selectedFile) return;
+                
+                // Mostrar área de progresso
+                progressArea.style.display = 'block';
+                resultArea.style.display = 'none';
+                transcribeButton.disabled = true;
+                
+                // Preparar dados para envio
+                const formData = new FormData();
+                formData.append('audio_file', selectedFile);
+                formData.append('language', languageSelect.value);
+                
+                // Enviar requisição AJAX
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload', true);
+                
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        progressArea.style.display = 'none';
+                        
+                        if (xhr.status === 200) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                
+                                if (response.success) {
+                                    // Mostrar resultado
+                                    transcriptionText.textContent = response.transcription || "Nenhum texto reconhecido no áudio.";
+                                    resultArea.style.display = 'block';
+                                } else {
+                                    alert(response.error || 'Erro desconhecido na transcrição.');
+                                }
+                            } catch (e) {
+                                alert('Erro ao processar resposta do servidor.');
+                            }
+                        } else {
+                            alert(`Erro ${xhr.status}: ${xhr.statusText}`);
+                        }
+                        
+                        transcribeButton.disabled = false;
+                    }
+                };
+                
+                xhr.send(formData);
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) {
+                    return bytes + ' bytes';
+                } else if (bytes < 1048576) {
+                    return (bytes / 1024).toFixed(1) + ' KB';
+                } else {
+                    return (bytes / 1048576).toFixed(1) + ' MB';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
