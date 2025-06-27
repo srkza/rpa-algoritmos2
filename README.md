@@ -1,3 +1,20 @@
+## Este projeto tem como objetivo demonstrar a automação de processos (RPA) com foco na transcrição de áudios via upload direto.
+
+Inicialmente, a proposta incluía login com logs, histórico de transcrições e banco de dados. Porém, devido às restrições de linguagem e complexidade exigidas pela disciplina, o projeto foi simplificado.
+
+A versão final conta com:
+
+Landing page única;
+
+Suporte a múltiplos idiomas;
+
+Upload de arquivos via drag and drop;
+
+Transcrição automatizada de áudios.
+
+O foco está na lógica do algoritmo e na aplicação prática da automação, respeitando os limites propostos pelo curso.
+
+
 # Sistema de Transcrição de Áudio Offline
 
 Uma aplicação web simples em Python para transcrição de arquivos de áudio para texto utilizando reconhecimento de fala offline com PocketSphinx.
